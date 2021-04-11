@@ -130,8 +130,26 @@ void event_handler::write_config(config &cfg) const
 		WRN_NG << "Tried to serialize disabled event, skipping";
 		return;
 	}
+	static const char* log_append_preload = " - this will not break saves since it was registered during or before preload\n";
+	static const char* log_append_postload = " - this will break saves because it was registered after preload\n";
 	if(is_lua_) {
-		WRN_NG << "Skipping serialization of an event bound to Lua code";
+		static const char* log = "Skipping serialization of an event with action bound to Lua code";
+		if(has_preloaded_){
+			WRN_NG << log << log_append_postload;
+			lg::log_to_chat() << log << log_append_postload;
+		} else {
+			LOG_NG << log << log_append_preload;
+		}
+		return;
+	}
+	if(!std::all_of(filters_.begin(), filters_.end(), std::mem_fn(&event_filter::can_serialize))) {
+		static const char* log = "Skipping serialization of an event with filter bound to Lua code";
+		if(has_preloaded_) {
+			WRN_NG << log << log_append_postload;
+			lg::log_to_chat() << log << log_append_postload;
+		} else {
+			LOG_NG << log << log_append_preload;
+		}
 		return;
 	}
 	if(!types_.empty()) cfg["name"] = types_;
@@ -148,6 +166,11 @@ void event_filter::serialize(config&) const
 	WRN_NG << "Tried to serialize an event with a filter that cannot be serialized!";
 }
 
+bool event_filter::can_serialize() const
+{
+	return false;
+}
+
 struct filter_condition : public event_filter {
 	filter_condition(const vconfig& cfg) : cfg_(cfg.make_safe()) {}
 	bool operator()(const queued_event&) const override
@@ -157,6 +180,10 @@ struct filter_condition : public event_filter {
 	void serialize(config& cfg) const override
 	{
 		cfg.add_child("filter_condition", cfg_.get_config());
+	}
+	bool can_serialize() const override
+	{
+		return true;
 	}
 private:
 	vconfig cfg_;
@@ -171,6 +198,10 @@ struct filter_side : public event_filter {
 	void serialize(config& cfg) const override
 	{
 		cfg.add_child("filter_side", ssf_.get_config());
+	}
+	bool can_serialize() const override
+	{
+		return true;
 	}
 private:
 	side_filter ssf_;
@@ -187,6 +218,10 @@ struct filter_unit : public event_filter {
 	void serialize(config& cfg) const override
 	{
 		cfg.add_child(first_ ? "filter" : "filter_second", suf_.to_config());
+	}
+	bool can_serialize() const override
+	{
+		return true;
 	}
 private:
 	unit_filter suf_;
@@ -209,6 +244,10 @@ struct filter_attack : public event_filter {
 	void serialize(config& cfg) const override
 	{
 		cfg.add_child(first_ ? "filter_attack" : "filter_second_attack", swf_.get_config());
+	}
+	bool can_serialize() const override
+	{
+		return true;
 	}
 private:
 	vconfig swf_;
@@ -233,6 +272,10 @@ struct filter_formula : public event_filter {
 		}
 		cfg["filter_formula"] = code;
 	}
+	bool can_serialize() const override
+	{
+		return true;
+	}
 private:
 	wfl::formula formula_;
 };
@@ -253,6 +296,10 @@ struct filter_lua : public event_filter {
 			WRN_NG << "Somehow an event has two filter= attributes";
 		}
 		cfg["filter"] = code_;
+	}
+	bool can_serialize() const override
+	{
+		return true;
 	}
 	~filter_lua()
 	{
@@ -301,10 +348,11 @@ void event_handler::register_wml_event(game_lua_kernel &lk)
 	event_ref_ = lk.save_wml_event();
 }
 
-void event_handler::set_event_ref(int idx)
+void event_handler::set_event_ref(int idx, bool has_preloaded)
 {
 	event_ref_ = idx;
 	is_lua_ = true;
+	has_preloaded_ = has_preloaded;
 }
 
 
