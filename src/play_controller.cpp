@@ -126,6 +126,7 @@ static void clear_resources()
 	resources::filter_con = nullptr;
 	resources::gameboard = nullptr;
 	resources::gamedata = nullptr;
+	resources::lua_kernel = nullptr;
 	resources::game_events = nullptr;
 	resources::persist = nullptr;
 	resources::soundsources = nullptr;
@@ -215,6 +216,7 @@ void play_controller::init(const config& level)
 		resources::filter_con = &gamestate();
 		resources::undo_stack = &undo_stack();
 		resources::game_events = gamestate().events_manager_.get();
+		resources::lua_kernel = gamestate().lua_kernel_.get();
 
 		gamestate_->ai_manager_.add_observer(this);
 		gamestate_->init(level, *this);
@@ -294,6 +296,7 @@ void play_controller::reset_gamestate(const config& level, int replay_pos)
 	resources::gamedata = nullptr;
 	resources::tod_manager = nullptr;
 	resources::filter_con = nullptr;
+	resources::lua_kernel = nullptr;
 	resources::game_events = nullptr;
 	resources::tunnels = nullptr;
 	resources::undo_stack = nullptr;
@@ -312,6 +315,7 @@ void play_controller::reset_gamestate(const config& level, int replay_pos)
 	resources::filter_con = &gamestate();
 	resources::undo_stack = &undo_stack();
 	resources::game_events = gamestate().events_manager_.get();
+	resources::lua_kernel = gamestate().lua_kernel_.get();
 
 	gamestate_->ai_manager_.add_observer(this);
 	gamestate_->init(level, *this);

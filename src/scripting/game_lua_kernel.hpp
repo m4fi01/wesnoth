@@ -18,7 +18,6 @@
 #include "scripting/lua_kernel_base.hpp" // for lua_kernel_base
 
 #include "game_events/action_wml.hpp"   // for wml_action, etc
-#include "utils/guard_value.hpp"
 
 #include <stack>
 #include <string>                       // for string
@@ -63,8 +62,6 @@ class game_lua_kernel : public lua_kernel_base
 	bool has_preloaded_ = false;
 
 	std::stack<game_events::queued_event const * > queued_events_;
-
-	utils::guard_value<game_lua_kernel*> resources_ptr_;
 
 	const game_events::queued_event & get_event_info();
 
